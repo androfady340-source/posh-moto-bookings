@@ -14,16 +14,214 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          booking_type: string
+          city: string | null
+          created_at: string
+          deposit_egp: number
+          email: string | null
+          full_name: string
+          id: string
+          instapay_sender: string
+          notes: string | null
+          phone: string
+          preferred_date: string
+          preferred_time: string
+          status: string
+          vehicle_id: string
+        }
+        Insert: {
+          booking_type?: string
+          city?: string | null
+          created_at?: string
+          deposit_egp?: number
+          email?: string | null
+          full_name: string
+          id?: string
+          instapay_sender: string
+          notes?: string | null
+          phone: string
+          preferred_date: string
+          preferred_time: string
+          status?: string
+          vehicle_id: string
+        }
+        Update: {
+          booking_type?: string
+          city?: string | null
+          created_at?: string
+          deposit_egp?: number
+          email?: string | null
+          full_name?: string
+          id?: string
+          instapay_sender?: string
+          notes?: string | null
+          phone?: string
+          preferred_date?: string
+          preferred_time?: string
+          status?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          approved: boolean
+          comment: string
+          created_at: string
+          id: string
+          name: string
+          rating: number
+        }
+        Insert: {
+          approved?: boolean
+          comment: string
+          created_at?: string
+          id?: string
+          name: string
+          rating: number
+        }
+        Update: {
+          approved?: boolean
+          comment?: string
+          created_at?: string
+          id?: string
+          name?: string
+          rating?: number
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_images: {
+        Row: {
+          angle: string
+          created_at: string
+          id: string
+          sort_order: number
+          storage_path: string | null
+          url: string
+          vehicle_id: string
+        }
+        Insert: {
+          angle?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          storage_path?: string | null
+          url: string
+          vehicle_id: string
+        }
+        Update: {
+          angle?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          storage_path?: string | null
+          url?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_images_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          acceleration: string | null
+          brand: string
+          created_at: string
+          description_ar: string
+          description_en: string
+          engine: string | null
+          horsepower: number | null
+          id: string
+          is_available: boolean
+          name: string
+          price_egp: number
+          top_speed: number | null
+          type: string
+          year: number
+        }
+        Insert: {
+          acceleration?: string | null
+          brand: string
+          created_at?: string
+          description_ar?: string
+          description_en?: string
+          engine?: string | null
+          horsepower?: number | null
+          id?: string
+          is_available?: boolean
+          name: string
+          price_egp: number
+          top_speed?: number | null
+          type?: string
+          year?: number
+        }
+        Update: {
+          acceleration?: string | null
+          brand?: string
+          created_at?: string
+          description_ar?: string
+          description_en?: string
+          engine?: string | null
+          horsepower?: number | null
+          id?: string
+          is_available?: boolean
+          name?: string
+          price_egp?: number
+          top_speed?: number | null
+          type?: string
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +348,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
