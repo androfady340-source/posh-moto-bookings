@@ -31,7 +31,7 @@ function Admin() {
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getUser();
-      if (!data.user) return nav({ to: "/login" });
+      if (!data.user) { nav({ to: "/login" }); return; }
       const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
       setState(isAdmin ? "ok" : "denied");
     })();
@@ -78,7 +78,7 @@ function Bookings() {
   });
   async function setStatus(id: string, status: string) {
     const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["admin-bookings"] });
   }
   async function del(id: string) {
@@ -136,7 +136,7 @@ function Vehicles() {
   async function del(id: string) {
     if (!confirm("Delete this vehicle and its images?")) return;
     const { error } = await supabase.from("vehicles").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     refresh();
   }
 
@@ -171,7 +171,9 @@ function VehicleForm({ v, onDone }: { v: V | null; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
+    const fd = new FormData(e.currentTarget);
+    const g = (k: string) => String(fd.get(k) ?? "");
+    const f = { name: g("name"), brand: g("brand"), type: g("type"), year: g("year"), price_egp: g("price_egp"), horsepower: g("horsepower"), top_speed: g("top_speed"), acceleration: g("acceleration"), engine: g("engine"), description_en: g("description_en"), description_ar: g("description_ar"), is_available: g("is_available") };
     const row = {
       name: f.name.trim().slice(0, 100),
       brand: f.brand.trim().slice(0, 100),
@@ -186,11 +188,11 @@ function VehicleForm({ v, onDone }: { v: V | null; onDone: () => void }) {
       description_ar: f.description_ar.slice(0, 3000),
       is_available: f.is_available === "on",
     };
-    if (!row.name || !row.brand || !(row.price_egp > 0)) return toast.error("Name, brand and price are required");
+    if (!row.name || !row.brand || !(row.price_egp > 0)) { toast.error("Name, brand and price are required"); return; }
     setBusy(true);
     const { error } = v ? await supabase.from("vehicles").update(row).eq("id", v.id) : await supabase.from("vehicles").insert(row);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Saved");
     onDone();
   }
