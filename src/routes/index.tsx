@@ -111,7 +111,7 @@ function Reviews() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const parsed = reviewSchema.safeParse({ name: fd.get("name"), comment: fd.get("comment"), rating });
-    if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    if (!parsed.success) { toast.error(parsed.error.issues[0]?.message ?? "Invalid input"); return; }
     setBusy(true);
     const { error } = await supabase.from("reviews").insert(parsed.data);
     setBusy(false);

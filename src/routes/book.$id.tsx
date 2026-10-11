@@ -49,7 +49,7 @@ function BookPage() {
     e.preventDefault();
     const raw = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
     const parsed = schema.safeParse(raw);
-    if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    if (!parsed.success) { toast.error(parsed.error.issues[0]?.message ?? "Invalid input"); return; }
     const d = parsed.data;
     setBusy(true);
     const { error } = await supabase.from("bookings").insert({

@@ -125,7 +125,7 @@ function Bookings() {
   );
 }
 
-type V = Awaited<ReturnType<typeof vehiclesQuery.queryFn>>[number];
+type V = Awaited<ReturnType<NonNullable<typeof vehiclesQuery.queryFn>>>[number];
 
 function Vehicles() {
   const qc = useQueryClient();
@@ -226,7 +226,7 @@ function ImageManager({ vehicle, onChange }: { vehicle: V; onChange: () => void 
   async function upload(files: FileList | null) {
     if (!files?.length) return;
     setBusy(true);
-    let order = imgs.length ? Math.max(...imgs.map((i) => i.sort_order)) + 1 : 0;
+    let order = imgs.length ? Math.max(...imgs.map((i: { sort_order: number }) => i.sort_order)) + 1 : 0;
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) { toast.error("Images only"); continue; }
       const path = `${vehicle.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
@@ -267,7 +267,7 @@ function ImageManager({ vehicle, onChange }: { vehicle: V; onChange: () => void 
     <div className="mt-4 border-t border-border pt-4">
       <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Gallery (first = cover)</p>
       <div className="space-y-2">
-        {imgs.map((im, i) => (
+        {imgs.map((im: V["vehicle_images"][number], i: number) => (
           <div key={im.id} className="flex items-center gap-2">
             <img src={im.url} alt="" className="h-12 w-16 object-cover" />
             <select value={im.angle} onChange={(e) => setImgAngle(im.id, e.target.value)} className={`${field} flex-1 py-1`}>
