@@ -1,0 +1,20 @@
+{
+  // Cloudflare Workers config for the Noir Auto Haus showroom.
+  // Build first (`npm run build`), then deploy: `npx wrangler deploy`.
+  "name": "noir-auto-haus",
+  "main": "dist/server/index.mjs",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Static files (images, css, js) served straight from Cloudflare's CDN.
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS"
+  },
+
+  // The build is already split into ES modules, so don't re-bundle it.
+  "no_bundle": true,
+  "rules": [{ "type": "ESModule", "globs": ["**/*.mjs", "**/*.js"] }],
+
+  "observability": { "enabled": true }
+}
