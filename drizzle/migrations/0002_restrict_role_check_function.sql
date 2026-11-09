@@ -18,7 +18,16 @@ $$;
 
 -- Only authenticated users need this helper for admin UI and RLS checks.
 REVOKE ALL ON FUNCTION public.has_role(uuid, public.app_role) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.has_role(uuid, public.app_role) FROM anon;
 GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
+
+-- Backfill the designated showroom administrator if the account existed
+-- before the original auth.users trigger was installed.
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'admin'::public.app_role
+FROM auth.users
+WHERE lower(email) = 'androfady340@gmail.com'
+ON CONFLICT (user_id, role) DO NOTHING;
 
 -- Anonymous visitors may read approved reviews, but must not invoke the
 -- SECURITY DEFINER role-check function.
