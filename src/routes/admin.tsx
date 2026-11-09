@@ -83,7 +83,8 @@ function Bookings() {
   }
   async function del(id: string) {
     if (!confirm("Delete booking?")) return;
-    await supabase.from("bookings").delete().eq("id", id);
+    const { error } = await supabase.from("bookings").delete().eq("id", id);
+    if (error) { toast.error("Couldn't delete booking"); return; }
     qc.invalidateQueries({ queryKey: ["admin-bookings"] });
   }
   if (!data.length) return <p className="text-muted-foreground">No bookings yet.</p>;
@@ -228,13 +229,26 @@ function ImageManager({ vehicle, onChange }: { vehicle: V; onChange: () => void 
     setBusy(true);
     let order = imgs.length ? Math.max(...imgs.map((i: { sort_order: number }) => i.sort_order)) + 1 : 0;
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) { toast.error("Images only"); continue; }
-      const path = `${vehicle.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
-      const up = await supabase.storage.from("vehicle-images").upload(path, file, { contentType: file.type });
+      const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+      if (!allowedTypes.has(file.type)) { toast.error("Use a JPG, PNG, WebP, or AVIF image"); continue; }
+      if (file.size > 10 * 1024 * 1024) { toast.error("Each image must be 10 MB or smaller"); continue; }
+      const path = `${vehicle.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+      const storage = supabase.storage.from("vehicle-images");
+      const up = await storage.upload(path, file, { contentType: file.type });
       if (up.error) { toast.error(up.error.message); continue; }
-      const signed = await supabase.storage.from("vehicle-images").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-      if (signed.error) { toast.error(signed.error.message); continue; }
-      await supabase.from("vehicle_images").insert({ vehicle_id: vehicle.id, url: signed.data.signedUrl, storage_path: path, angle, sort_order: order++ });
+      const signed = await storage.createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signed.error) {
+        await storage.remove([path]);
+        toast.error(signed.error.message);
+        continue;
+      }
+      const { error: imageError } = await supabase.from("vehicle_images").insert({
+        vehicle_id: vehicle.id, url: signed.data.signedUrl, storage_path: path, angle, sort_order: order++,
+      });
+      if (imageError) {
+        await storage.remove([path]);
+        toast.error("Image uploaded but couldn't be added to the gallery");
+      }
     }
     setBusy(false);
     onChange();
@@ -243,23 +257,33 @@ function ImageManager({ vehicle, onChange }: { vehicle: V; onChange: () => void 
   async function move(i: number, dir: -1 | 1) {
     const a = imgs[i], b = imgs[i + dir];
     if (!a || !b) return;
-    await Promise.all([
-      supabase.from("vehicle_images").update({ sort_order: b.sort_order }).eq("id", a.id),
-      supabase.from("vehicle_images").update({ sort_order: a.sort_order }).eq("id", b.id),
-    ]);
-    // handle equal orders
-    if (a.sort_order === b.sort_order) await supabase.from("vehicle_images").update({ sort_order: a.sort_order + dir }).eq("id", a.id);
+    const first = await supabase.from("vehicle_images").update({ sort_order: -1 }).eq("id", a.id);
+    if (first.error) { toast.error("Couldn't reorder images"); return; }
+    const second = await supabase.from("vehicle_images").update({ sort_order: a.sort_order }).eq("id", b.id);
+    if (second.error) {
+      await supabase.from("vehicle_images").update({ sort_order: a.sort_order }).eq("id", a.id);
+      toast.error("Couldn't reorder images");
+      onChange();
+      return;
+    }
+    const third = await supabase.from("vehicle_images").update({ sort_order: b.sort_order }).eq("id", a.id);
+    if (third.error) toast.error("Image order may be incomplete");
     onChange();
   }
 
   async function setImgAngle(id: string, value: string) {
-    await supabase.from("vehicle_images").update({ angle: value }).eq("id", id);
+    const { error } = await supabase.from("vehicle_images").update({ angle: value }).eq("id", id);
+    if (error) { toast.error("Couldn't update image angle"); return; }
     onChange();
   }
 
   async function remove(id: string, path?: string | null) {
-    if (path) await supabase.storage.from("vehicle-images").remove([path]);
-    await supabase.from("vehicle_images").delete().eq("id", id);
+    if (path) {
+      const { error: storageError } = await supabase.storage.from("vehicle-images").remove([path]);
+      if (storageError) { toast.error("Couldn't remove image file"); return; }
+    }
+    const { error } = await supabase.from("vehicle_images").delete().eq("id", id);
+    if (error) { toast.error("Couldn't remove image record"); return; }
     onChange();
   }
 
@@ -311,10 +335,18 @@ function ReviewsAdmin() {
             <p className="font-display text-lg">{r.name} · {"★".repeat(r.rating)}</p>
             <p className="text-sm text-muted-foreground">{r.comment}</p>
           </div>
-          <button onClick={async () => { await supabase.from("reviews").update({ approved: !r.approved }).eq("id", r.id); refresh(); }} className={`border px-3 py-1 text-xs ${r.approved ? "border-border" : "border-primary text-primary"}`}>
+          <button onClick={async () => {
+            const { error } = await supabase.from("reviews").update({ approved: !r.approved }).eq("id", r.id);
+            if (error) { toast.error("Couldn't update review"); return; }
+            refresh();
+          }} className={`border px-3 py-1 text-xs ${r.approved ? "border-border" : "border-primary text-primary"}`}>
             {r.approved ? "Hide" : "Approve"}
           </button>
-          <button onClick={async () => { await supabase.from("reviews").delete().eq("id", r.id); refresh(); }} className="text-destructive"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={async () => {
+            const { error } = await supabase.from("reviews").delete().eq("id", r.id);
+            if (error) { toast.error("Couldn't delete review"); return; }
+            refresh();
+          }} className="text-destructive"><Trash2 className="h-4 w-4" /></button>
         </div>
       ))}
     </div>
