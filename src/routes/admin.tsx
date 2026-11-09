@@ -266,7 +266,8 @@ function ImageManager({ vehicle, onChange }: { vehicle: V; onChange: () => void 
       onChange();
       return;
     }
-    const third = await supabase.from("vehicle_images").update({ sort_order: b.sort_order }).eq("id", a.id);
+    const targetOrder = a.sort_order === b.sort_order ? a.sort_order + dir : b.sort_order;
+    const third = await supabase.from("vehicle_images").update({ sort_order: targetOrder }).eq("id", a.id);
     if (third.error) toast.error("Image order may be incomplete");
     onChange();
   }
