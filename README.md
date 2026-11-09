@@ -82,6 +82,7 @@ bun run dev
 - Keep service-role credentials in Cloudflare Worker secrets only, never in browser variables.
 - Booking creation is public, but the database validates the vehicle, booking date, deposit amount, and initial status.
 - Admin operations are protected by the database role policies, not only by the client-side dashboard check.
+- The role-check helper only returns the caller's own role and is not executable by anonymous visitors.
 - Payment status is a manual admin confirmation; submitting a booking does not automatically verify an InstaPay transfer.
 
 ## Cloudflare deployment
