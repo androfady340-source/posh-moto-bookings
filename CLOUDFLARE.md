@@ -1,35 +1,42 @@
-# Deploy to Cloudflare Workers
+# Deploy Noir Auto Haus to Cloudflare Workers
 
-The build already outputs a Cloudflare Worker (`dist/server/index.mjs`) plus the
-static files (`dist/client`). `wrangler.jsonc` at the project root wires the two
-together. Nothing else to configure.
+The project is configured to build a Cloudflare Worker at `dist/server/index.mjs` and static assets in `dist/client`. The root `wrangler.jsonc` connects these outputs.
 
-## One-time setup
+## 1. Install dependencies
 
 ```bash
-npm install
-npx wrangler login   # opens Cloudflare in your browser, click "Allow"
+bun install --frozen-lockfile
 ```
 
-## Publish
+## 2. Configure environment variables
+
+Create a local `.env` from `.env.example` for local builds. Do not commit `.env`.
+
+For production, configure the required values in Cloudflare Workers **Settings → Variables and Secrets**:
+
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+
+The browser build also needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` at build time. These are public/publishable values and are embedded in the client bundle by design.
+
+Only configure `SUPABASE_SERVICE_ROLE_KEY` as a Worker secret if trusted server-only code actually needs the service-role client. Never use a `VITE_` prefix for it.
+
+## 3. Build and deploy
 
 ```bash
-npm run deploy       # = vite build && wrangler deploy
+bun run build
+bunx wrangler login
+bun run deploy
 ```
 
-The last line prints the live address, e.g. `https://noir-auto-haus.<account>.workers.dev`.
+The deployed Worker name is `noir-auto-haus`, as configured in `wrangler.jsonc`.
 
-Re-run `npm run deploy` after every change.
+## 4. Custom domain
 
-## Point a domain at it
+In Cloudflare, open **Workers & Pages → noir-auto-haus → Settings → Domains & Routes** and add the domain.
 
-Cloudflare dashboard → **Workers & Pages** → `noir-auto-haus` → **Settings** →
-**Domains & Routes** → **Add custom domain**.
+## Operational notes
 
-## Notes
-
-- `.env` holds the backend address and public key. Keep it in the project — the
-  build reads it and bakes the values into the output.
-- No private keys are needed: every database rule is enforced by the backend
-  itself, so nothing sensitive has to be pasted into Cloudflare.
-- To test the exact production output locally: `npm run build && npx wrangler dev`.
+- Apply database migrations to Supabase separately; deploying the Worker does not apply SQL migrations.
+- Create and configure the `vehicle-images` Supabase Storage bucket before enabling admin image uploads.
+- Customer deposits are confirmed manually in the admin area. The application does not verify InstaPay transfers automatically.
